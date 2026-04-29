@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ES">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA DE GESTIÓN PROFESIONAL</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; text-transform: uppercase; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* PANEL LATERAL */
+        .sidebar { width: 300px; background-color: #333; color: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.2); transition: all 0.3s ease; z-index: 1000; }
+        
+        /* ESTADO OCULTO DEL SIDEBAR */
+        .sidebar-hidden { margin-left: -300px; }
+
+        /* BOTÓN HAMBURGUESA */
+        .hamburger-btn { position: fixed; top: 15px; left: 15px; z-index: 1100; background: #333; color: white; border: none; border-radius: 5px; padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .hamburger-btn svg { width: 24px; height: 24px; fill: white; }
+        .hamburger-btn:hover { background: #444; }
+
+        /* CONTENEDOR DE LOGO DINÁMICO */
+        .sidebar-header-container { padding: 20px; padding-top: 60px; background-color: #222; text-align: center; border-bottom: 1px solid #444; position: relative; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+        .logo-placeholder { font-weight: 900; font-size: 1.1rem; cursor: pointer; transition: 0.3s; width: 100%; }
+        .logo-placeholder:hover { color: #007bff; }
+        .user-logo { max-width: 100%; max-height: 80px; object-fit: contain; cursor: pointer; display: block; }
+        #fileInput { display: none; }
+
+        .year-selector-container { padding: 15px; background: #2c3e50; border-bottom: 1px solid #444; }
+        .year-select { width: 100%; padding: 8px; border-radius: 6px; background: #333; color: white; border: 1px solid #555; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+
+        .tabs-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .tab-item { padding: 10px 12px; background: #444; margin-bottom: 8px; cursor: pointer; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; font-size: 0.75rem; font-weight: bold; }
+        .tab-item:hover { background: #555; }
+        .tab-item.active { background: #007bff; color: white; }
+        
+        .tab-actions { display: none; gap: 5px; }
+        .gestion-activa .tab-actions { display: flex; }
+        .btn-tab-action { border: none; border-radius: 4px; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-tab-edit { background-color: #3498db; } 
+        .btn-tab-delete { background-color: #e74c3c; }
+        .btn-tab-action svg { width: 14px; height: 14px; fill: white; }
+
+        .sidebar-footer { padding: 10px; background: #222; display: flex; flex-direction: column; gap: 8px; }
+        .btn-add-tab { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-new-year { padding: 8px; background-color: #f39c12; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+
+        /* CONTENIDO PRINCIPAL */
+        .main-content { flex: 1; overflow-y: auto; padding: 25px; transition: all 0.3s ease; }
+        .main-wrapper { display: flex; gap: 30px; max-width: 1200px; margin: auto; align-items: flex-start; }
+        
+        .left-side { flex: 2; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .right-container { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+
+        .title-box { background-color: #333; padding: 10px 20px; font-weight: 900; font-size: 1.1rem; color: white; display: inline-block; margin-bottom: 20px; border-radius: 4px; }
+        
+        .form-group { display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
+        input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 6px; text-transform: uppercase; font-size: 0.75rem; }
+        .btn-add-order { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-add-order.edit-mode { background-color: #007bff; }
+
+        .action-buttons { display: flex; gap: 8px; align-self: flex-end; }
+        .btn-icon { background-color: #ffffff; border: 2px solid #333; padding: 8px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.3s; position: relative; }
+        .btn-icon:hover { background-color: #f0f0f0; }
+        .btn-icon svg { width: 20px; height: 20px; fill: #333; }
+        .btn-icon.active { background-color: #007bff; border-color: #007bff; }
+        .btn-icon.active svg { fill: white; }
+        .icon-q { font-weight: 900; font-size: 11px; position: absolute; bottom: 2px; right: 4px; color: #333; }
+        .btn-icon.active .icon-q { color: white; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        th { padding: 10px; text-align: left; font-size: 0.7rem; border-bottom: 2px solid #333; }
+        td { padding: 12px; border-bottom: 1px solid #eee; background: white; font-size: 0.85rem; }
+
+        .box-total-dollar { background-color: #28a745; color: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); border: 2px solid #1e7e34; }
+        .amount { font-size: 2.2rem; font-weight: 900; display: block; }
+
+        /* METAS */
+        .right-side { background: transparent; padding: 0; border: none; }
+        .meta-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; transition: all 0.5s ease; position: relative; overflow: visible;}
+        .meta-card.alcanzada { background: #28a745; border-color: #1e7e34; transform: scale(1.02); box-shadow: 0 8px 20px rgba(40,167,69,0.3); }
+        .tachuela { display: none; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: white; padding: 4px 12px; font-size: 0.65rem; font-weight: 900; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap; z-index: 10; }
+        .meta-card.alcanzada .tachuela { display: block; }
+        .meta-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.75rem; font-weight: 900; }
+        .alcanzada .meta-info, .alcanzada .meta-footer { color: white !important; }
+        .progress-container { background: #eee; height: 10px; border-radius: 10px; overflow: hidden; position: relative; }
+        .progress-bar { background: #007bff; height: 100%; width: 0%; transition: width 0.6s ease; border-radius: 10px; }
+        .alcanzada .progress-container { display: none; }
+        .meta-footer { font-size: 0.65rem; color: #888; margin-top: 8px; text-align: right; font-weight: bold; }
+        .alcanzada .meta-footer { text-align: center; font-size: 1.1rem; margin-top: 0; letter-spacing: 1px; }
+
+        .btn-row-edit { background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; margin-right: 5px; }
+        .btn-row-delete { background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
+        .btn-row-status { background: #666; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
+
+        .alerta-duplicado { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: none; text-align: center; }
+
+        @media print {
+            .sidebar, .hamburger-btn, .form-group, .action-buttons, .alerta-duplicado, .right-side, th:last-child, td:last-child { display: none !important; }
+            tr.row-pendiente { display: none !important; }
+            body { display: block; background: white; }
+            .main-content { padding: 0; margin-left: 0 !important; }
+            .left-side { box-shadow: none; border: none; padding: 0; width: 100%; }
+            table { border-collapse: collapse; margin-top: 20px; }
+            td, th { border: 1px solid #000; padding: 8px; text-align: center; }
+            .box-total-dollar { background: white !important; color: black !important; border: 2px solid black !important; box-shadow: none !important; width: 300px; margin-left: auto; margin-top: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="hamburger-btn" onclick="toggleSidebar()" title="MOSTRAR/OCULTAR MENÚ">
+    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+</button>
+
+<div class="sidebar" id="sidebarPanel">
+    <div class="sidebar-header-container" id="headerContainer">
+        <div class="logo-placeholder" id="placeholderText" onclick="document.getElementById('fileInput').click()">MIS FINANZAS</div>
+        <img id="logoImg" class="user-logo" style="display:none;" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept="image/*" onchange="cargarLogo(event)">
+    </div>
+
+    <div class="year-selector-container">
+        <label style="font-size: 0.6rem; font-weight: 900; color: #bdc3c7; display: block; margin-bottom: 5px;">AÑO ACTIVO</label>
+        <select class="year-select" id="selectorAnio" onchange="cambiarAnio()"></select>
+    </div>
+    <div class="tabs-list" id="tabsList"></div>
+    <div class="sidebar-footer">
+        <button class="btn-add-tab" onclick="crearHoja()">+ NUEVA QUINCENA</button>
+        <button class="btn-new-year" onclick="nuevoAnio()">+ INICIAR NUEVO AÑO</button>
+    </div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <div class="main-wrapper">
+        <div class="left-side">
+            <div id="alertaDuplicado" class="alerta-duplicado">¡ERROR! LA ORDEN YA EXISTE</div>
+            <div class="title-box" id="nombreHojaActiva">CARGANDO...</div>
+
+            <div class="form-group">
+                <input type="hidden" id="editId">
+                <input type="text" id="numeroOrden" placeholder="N° ORDEN" style="width:100px">
+                <input type="date" id="fecha">
+                <input type="number" id="costo" placeholder="COSTO $">
+                <select id="estado">
+                    <option value="pendiente">PENDIENTE</option>
+                    <option value="entregado">ENTREGADO</option>
+                </select>
+                <button class="btn-add-order" id="btnAccion" onclick="agregarOActualizar()">GUARDAR</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ORDEN</th>
+                        <th>COSTO</th>
+                        <th>FECHA</th>
+                        <th>ESTADO</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaOrdenes"></tbody>
+            </table>
+        </div>
+
+        <div class="right-container">
+            <div class="action-buttons">
+                <button class="btn-icon" id="btnGestionHojas" onclick="toggleGestionHojas()" title="GESTIONAR HOJAS">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
+                    <span class="icon-q">Q</span>
+                </button>
+                <button class="btn-icon" id="toggleEdit" onclick="toggleModoEdicion()" title="MODO EDICIÓN">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="btn-icon" onclick="window.print()" title="IMPRIMIR">
+                    <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                </button>
+            </div>
+
+            <div class="right-side">
+                <div id="listaMetas"></div>
+            </div>
+
+            <div class="box-total-dollar">
+                <span style="font-size:0.8rem; font-weight:900; letter-spacing:1px;">GENERADO</span>
+                <span class="amount">$<span id="totalSuma">0.00</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let datos = JSON.parse(localStorage.getItem('finanzas_v3')) || {
+        "2026": { indice: 0, hojas: [{ nombre: "1RA QUINCENA ENERO", ordenes: [] }] }
+    };
+    
+    // CARGAR LOGO GUARDADO
+    const savedLogo = localStorage.getItem('user_app_logo');
+    if(savedLogo) {
+        document.getElementById('logoImg').src = savedLogo;
+        document.getElementById('logoImg').style.display = 'block';
+        document.getElementById('placeholderText').style.display = 'none';
+    }
+
+    let anioActual = Object.keys(datos).sort().reverse()[0];
+    let modoEdicion = false;
+    let gestionHojasActiva = false;
+    const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+
+    // FUNCIÓN PARA EL BOTÓN HAMBURGUESA
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebarPanel');
+        sidebar.classList.toggle('sidebar-hidden');
+    }
+
+    function cargarLogo(event) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            const dataURL = reader.result;
+            localStorage.setItem('user_app_logo', dataURL);
+            document.getElementById('logoImg').src = dataURL;
+            document.getElementById('logoImg').style.display = 'block';
+            document.getElementById('placeholderText').style.display = 'none';
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    }
+
+    function guardar() { localStorage.setItem('finanzas_v3', JSON.stringify(datos)); }
+
+    function actualizarSelector() {
+        const sel = document.getElementById('selectorAnio');
+        if(sel) sel.innerHTML = Object.keys(datos).sort().reverse().map(a => `<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
+    }
+
+    function cambiarAnio() {
+        anioActual = document.getElementById('selectorAnio').value;
+        actualizarTodo();
+    }
+
+    function nuevoAnio() {
+        const n = prompt("INGRESA EL AÑO:");
+        if(n && !datos[n]) {
+            const libroAnterior = datos[anioActual];
+            const ultimaHoja = libroAnterior.hojas[libroAnterior.hojas.length - 1];
+            const pendientes = ultimaHoja.ordenes.filter(o => !o.entregado).map(o => ({...o, id: Date.now() + Math.random()}));
+            datos[n] = { indice: 0, hojas: [{ nombre: "1RA QUINCENA ENERO", ordenes: pendientes }] };
+            anioActual = n; guardar(); actualizarTodo();
+        }
+    }
+
+    function toggleGestionHojas() {
+        gestionHojasActiva = !gestionHojasActiva;
+        document.getElementById('btnGestionHojas').classList.toggle('active');
+        document.getElementById('sidebarPanel').classList.toggle('gestion-activa');
+        
+        // Si activamos gestión, asegurarnos que el panel sea visible
+        if(gestionHojasActiva) {
+            document.getElementById('sidebarPanel').classList.remove('sidebar-hidden');
+        }
+        
+        actualizarTodo();
+    }
+
+    function renombrarHoja(i, e) {
+        e.stopPropagation();
+        const actual = datos[anioActual].hojas[i].nombre;
+        const nuevo = prompt("NUEVO NOMBRE:", actual);
+        if (nuevo && nuevo.trim() !== "") {
+            datos[anioActual].hojas[i].nombre = nuevo.toUpperCase();
+            guardar(); actualizarTodo();
+        }
+    }
+
+    function toggleModoEdicion() {
+        modoEdicion = !modoEdicion;
+        document.getElementById('toggleEdit').classList.toggle('active');
+        actualizarTodo();
+    }
+
+    function prepararEdicion(id) {
+        const orden = datos[anioActual].hojas[datos[anioActual].indice].ordenes.find(o => o.id == id);
+        if(orden) {
+            document.getElementById('editId').value = orden.id;
+            document.getElementById('numeroOrden').value = orden.numero;
+            document.getElementById('fecha').value = orden.fecha;
+            document.getElementById('costo').value = orden.costo;
+            document.getElementById('estado').value = orden.entregado ? 'entregado' : 'pendiente';
+            const btn = document.getElementById('btnAccion');
+            btn.innerText = "ACTUALIZAR";
+            btn.classList.add('edit-mode');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function crearHoja() {
+        let libro = datos[anioActual];
+        if (libro.hojas.length >= 24) return alert("AÑO COMPLETO");
+        const actuales = libro.hojas[libro.indice].ordenes.filter(o => !o.entregado).map(o => ({...o, id: Date.now()+Math.random()}));
+        const q = (libro.hojas.length % 2 === 0) ? "1RA" : "2DA";
+        const m = meses[Math.floor(libro.hojas.length / 2)];
+        libro.hojas.push({ nombre: `${q} QUINCENA ${m}`, ordenes: actuales });
+        libro.indice = libro.hojas.length - 1;
+        guardar(); actualizarTodo();
+    }
+
+    function agregarOActualizar() {
+        let libro = datos[anioActual];
+        const num = document.getElementById('numeroOrden').value.trim().toUpperCase();
+        const fec = document.getElementById('fecha').value;
+        const cos = parseFloat(document.getElementById('costo').value);
+        const est = document.getElementById('estado').value === 'entregado';
+        const idEdicion = document.getElementById('editId').value;
+
+        if(!num || !fec || isNaN(cos)) return alert("DATOS INCOMPLETOS");
+
+        const existe = libro.hojas[libro.indice].ordenes.find(o => o.numero === num && o.id != idEdicion);
+        if(existe) {
+            document.getElementById('alertaDuplicado').style.display="block";
+            setTimeout(()=> document.getElementById('alertaDuplicado').style.display="none", 2000);
+            return;
+        }
+
+        if(idEdicion) {
+            const i = libro.hojas[libro.indice].ordenes.findIndex(o => o.id == idEdicion);
+            libro.hojas[libro.indice].ordenes[i] = { id: parseFloat(idEdicion), numero: num, fecha: fec, costo: cos, entregado: est };
+            document.getElementById('editId').value = "";
+            document.getElementById('btnAccion').innerText = "GUARDAR";
+            document.getElementById('btnAccion').classList.remove('edit-mode');
+        } else {
+            libro.hojas[libro.indice].ordenes.push({ id: Date.now(), numero: num, fecha: fec, costo: cos, entregado: est });
+        }
+        guardar(); actualizarTodo();
+        document.getElementById('numeroOrden').value=""; document.getElementById('costo').value="";
+    }
+
+    function actualizarTodo() {
+        actualizarSelector();
+        let libro = datos[anioActual];
+        const list = document.getElementById('tabsList');
+        list.innerHTML = libro.hojas.map((h, i) => `
+            <div class="tab-item ${i===libro.indice?'active':''}" onclick="datos['${anioActual}'].indice=${i}; actualizarTodo()">
+                ${h.nombre}
+                <div class="tab-actions">
+                    <button class="btn-tab-action btn-tab-edit" onclick="renombrarHoja(${i}, event)"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg></button>
+                    <button class="btn-tab-action btn-tab-delete" onclick="if(confirm('¿BORRAR HOJA?')){datos['${anioActual}'].hojas.splice(${i},1); datos['${anioActual}'].indice=0; guardar(); actualizarTodo();} event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+                </div>
+            </div>`).join('');
+
+        document.getElementById('nombreHojaActiva').innerText = libro.hojas[libro.indice].nombre;
+        const tabla = document.getElementById('tablaOrdenes');
+        let total = 0; tabla.innerHTML = "";
+
+        libro.hojas[libro.indice].ordenes.forEach(o => {
+            if(o.entregado) total += o.costo;
+            tabla.innerHTML += `
+                <tr class="${!o.entregado ? 'row-pendiente' : ''}">
+                    <td>${o.numero}</td>
+                    <td>$${o.costo.toFixed(2)}</td>
+                    <td>${o.fecha}</td>
+                    <td style="font-weight:bold; color:${o.entregado?'#28a745':'#f39c12'}">${o.entregado?'ENTREGADO':'PENDIENTE'}</td>
+                    <td>
+                        ${modoEdicion ? 
+                        `<button class="btn-row-edit" onclick="prepararEdicion(${o.id})">EDITAR</button>
+                         <button class="btn-row-delete" onclick="if(confirm('¿BORRAR?')){datos['${anioActual}'].hojas[datos['${anioActual}'].indice].ordenes=datos['${anioActual}'].hojas[datos['${anioActual}'].indice].ordenes.filter(x=>x.id!=${o.id}); guardar(); actualizarTodo();}">BORRAR</button>` : 
+                        `<button class="btn-row-status" onclick="o=datos['${anioActual}'].hojas[datos['${anioActual}'].indice].ordenes.find(x=>x.id==${o.id}); o.entregado=!o.entregado; guardar(); actualizarTodo();">ESTADO</button>`}
+                    </td>
+                </tr>`;
+        });
+
+        document.getElementById('totalSuma').innerText = total.toLocaleString(undefined, {minimumFractionDigits:2});
+
+        const metas = [{n: "META 100%", v: 18001}, {n: "META 75%", v: 14501}, {n: "META 50%", v: 11001}, {n: "META 25%", v: 8001}];
+        document.getElementById('listaMetas').innerHTML = metas.map(m => {
+            const alc = total >= m.v;
+            const porcentaje = Math.min((total / m.v) * 100, 100).toFixed(0);
+            return `
+            <div class="meta-card ${alc?'alcanzada':''}">
+                <div class="tachuela">META ALCANZADA</div>
+                ${alc ? `<div class="meta-footer">¡LOGRADO! <br> $${m.v.toLocaleString()}</div>` : 
+                `<div class="meta-info"><span>${m.n}</span><span>${porcentaje}%</span></div>
+                <div class="progress-container"><div class="progress-bar" style="width: ${porcentaje}%"></div></div>
+                <div class="meta-footer">FALTAN: $${(m.v - total).toLocaleString()}</div>`}
+            </div>`;
+        }).join('');
+    }
+
+    actualizarTodo();
+</script>
+</body>
+</html>
